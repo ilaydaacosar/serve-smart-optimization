@@ -1,4 +1,4 @@
-import { BarChart3, Brain, Gauge, LineChart, Settings2, Users } from "lucide-react";
+import { BarChart3, Brain, Clock, Gauge, LineChart, Settings2, Users } from "lucide-react";
 
 const features = [
   { icon: LineChart, title: "Patient Flow Analysis", description: "Track and analyze patient arrival patterns using statistical models to identify bottlenecks." },
@@ -8,8 +8,6 @@ const features = [
   { icon: Users, title: "Service Counter Optimization", description: "Get data-driven recommendations for staffing levels across different time periods." },
   { icon: Brain, title: "Operations Research Models", description: "Leverage proven OR techniques including M/M/1 and M/M/c models for decision support." },
 ];
-
-import { Clock } from "lucide-react";
 
 const FeaturesSection = () => {
   return (
