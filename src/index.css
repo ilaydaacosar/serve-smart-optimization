@@ -44,6 +44,22 @@
     --card-shadow: 0 4px 24px -4px hsl(215 25% 15% / 0.08);
     --card-shadow-hover: 0 8px 32px -4px hsl(215 25% 15% / 0.12);
 
+    --dashboard-bg: 220 20% 97%;
+    --dashboard-card: 0 0% 100%;
+    --dashboard-border: 220 15% 91%;
+    --dashboard-header: 220 25% 14%;
+    --kpi-blue: 210 80% 45%;
+    --kpi-green: 160 50% 42%;
+    --kpi-amber: 38 92% 50%;
+    --kpi-red: 0 84% 60%;
+    --kpi-purple: 262 60% 55%;
+    --kpi-blue-bg: 210 80% 96%;
+    --kpi-green-bg: 160 50% 95%;
+    --kpi-amber-bg: 38 92% 95%;
+    --kpi-red-bg: 0 84% 96%;
+    --kpi-purple-bg: 262 60% 96%;
+    --chart-grid: 220 15% 93%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
