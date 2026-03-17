@@ -5,13 +5,13 @@ const steps = [
     icon: ClipboardList,
     step: "01",
     title: "Enter System Parameters",
-    description: "Input patient arrival rate, service rate, number of doctors, and operating hours into the system.",
+    description: "Input arrival rate, service rate, number of servers, operating hours, and institution type into the system.",
   },
   {
     icon: BarChart3,
     step: "02",
     title: "Analyze Queue Performance",
-    description: "MediQueue applies M/M/c queue theory models to calculate key performance metrics and identify bottlenecks.",
+    description: "ServeSmart applies M/M/c queue theory models to calculate key performance metrics and identify bottlenecks.",
   },
   {
     icon: Lightbulb,

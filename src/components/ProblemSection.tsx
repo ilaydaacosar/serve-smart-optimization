@@ -4,17 +4,17 @@ const problems = [
   {
     icon: Clock,
     title: "Excessive Wait Times",
-    description: "Patients spend an average of 45–90 minutes waiting due to unpredictable arrival patterns and poor scheduling.",
+    description: "Customers spend 30–90 minutes waiting due to unpredictable arrival patterns and poor scheduling across service organizations.",
   },
   {
     icon: Users,
     title: "Inefficient Staffing",
-    description: "Hospitals often over-staff during slow periods and under-staff during peak hours, wasting valuable resources.",
+    description: "Organizations often over-staff during slow periods and under-staff during peak hours, wasting valuable resources.",
   },
   {
     icon: TrendingDown,
-    title: "Low Patient Satisfaction",
-    description: "Long queues lead to patient dissatisfaction, missed appointments, and negative impacts on hospital reputation.",
+    title: "Low Customer Satisfaction",
+    description: "Long queues lead to customer dissatisfaction, abandoned visits, and negative impacts on organizational reputation.",
   },
   {
     icon: AlertTriangle,
@@ -29,10 +29,10 @@ const ProblemSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-14">
           <span className="text-sm font-semibold text-primary uppercase tracking-wider">The Problem</span>
-          <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Why Hospital Queues Need Optimization</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Why Service Queues Need Optimization</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Hospitals face long waiting lines due to inefficient capacity planning and unpredictable patient arrivals,
-            resulting in poor patient experience and wasted resources.
+            Many service organizations face long waiting lines due to inefficient capacity planning and unpredictable customer arrivals,
+            resulting in poor customer experience and wasted resources.
           </p>
         </div>
 
