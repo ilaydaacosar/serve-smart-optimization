@@ -1,6 +1,6 @@
 export interface QueueInput {
-  arrivalRate: number; // λ (patients/hour)
-  serviceRate: number; // μ (patients/hour/doctor)
+  arrivalRate: number; // λ (customers/hour)
+  serviceRate: number; // μ (customers/hour/server)
   numServers: number;  // c
   operatingHours: number;
 }
@@ -26,7 +26,7 @@ function factorial(n: number): number {
 }
 
 function erlangC(c: number, rho: number): number {
-  const a = rho * c; // traffic intensity
+  const a = rho * c;
   if (rho >= 1) return 1;
   
   let sum = 0;
@@ -43,11 +43,10 @@ function erlangC(c: number, rho: number): number {
 export function calculateQueue(input: QueueInput): QueueResult {
   const { arrivalRate, serviceRate, numServers, operatingHours } = input;
   
-  const rho = arrivalRate / (numServers * serviceRate); // server utilization
+  const rho = arrivalRate / (numServers * serviceRate);
   const totalPatientsPerDay = arrivalRate * operatingHours;
   
   if (rho >= 1) {
-    // System is unstable
     const rec = Math.ceil(arrivalRate / serviceRate) + 1;
     return {
       utilization: rho,
@@ -56,21 +55,19 @@ export function calculateQueue(input: QueueInput): QueueResult {
       systemUtilization: rho,
       probWaiting: 1,
       recommendedDoctors: rec,
-      recommendation: `The system is overloaded (utilization ${(rho * 100).toFixed(0)}%). You need at least ${rec} doctors to handle the current patient load. Immediate action is required to prevent excessive wait times.`,
+      recommendation: `The system is overloaded (utilization ${(rho * 100).toFixed(0)}%). You need at least ${rec} service counters to handle the current load. Immediate action is required to prevent excessive wait times.`,
       avgSystemTime: Infinity,
       avgPatientsInSystem: Infinity,
       totalPatientsPerDay,
     };
   }
   
-  // M/M/c calculations
   const pW = erlangC(numServers, rho);
   const Lq = pW * rho / (1 - rho);
-  const Wq = Lq / arrivalRate * 60; // convert to minutes
+  const Wq = Lq / arrivalRate * 60;
   const W = Wq + (1 / serviceRate) * 60;
   const L = arrivalRate * (W / 60);
   
-  // Find recommended doctors
   let recommended = numServers;
   if (rho > 0.75) {
     for (let c = numServers + 1; c <= numServers + 10; c++) {
@@ -82,17 +79,16 @@ export function calculateQueue(input: QueueInput): QueueResult {
     }
   }
   
-  // Generate recommendation
   let recommendation = "";
   if (rho > 0.85) {
     const reduction = ((Wq - (Wq * 0.65)) / Wq * 100).toFixed(0);
-    recommendation = `Current system utilization is high (${(rho * 100).toFixed(0)}%). Increasing the number of doctors from ${numServers} to ${recommended} may reduce waiting time by approximately ${reduction}%. Immediate optimization is recommended.`;
+    recommendation = `Current system utilization is high (${(rho * 100).toFixed(0)}%). Increasing the number of service counters from ${numServers} to ${recommended} may reduce waiting time by approximately ${reduction}%. Immediate optimization is recommended.`;
   } else if (rho > 0.7) {
-    recommendation = `System utilization is moderate at ${(rho * 100).toFixed(0)}%. Consider adding ${recommended - numServers} more doctor(s) during peak hours to maintain service quality and reduce average wait times.`;
+    recommendation = `System utilization is moderate at ${(rho * 100).toFixed(0)}%. Consider adding ${recommended - numServers} more server(s) during peak hours to maintain service quality and reduce average wait times.`;
   } else if (rho > 0.5) {
     recommendation = `System is performing well with ${(rho * 100).toFixed(0)}% utilization. Current staffing levels are adequate. Monitor arrival patterns for potential peak-hour adjustments.`;
   } else {
-    recommendation = `System utilization is low at ${(rho * 100).toFixed(0)}%. Current capacity exceeds demand. Consider optimizing resource allocation or redistributing staff to busier departments.`;
+    recommendation = `System utilization is low at ${(rho * 100).toFixed(0)}%. Current capacity exceeds demand. Consider optimizing resource allocation or redistributing staff to busier areas.`;
   }
   
   return {

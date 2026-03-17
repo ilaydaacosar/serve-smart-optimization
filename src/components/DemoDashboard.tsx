@@ -1,7 +1,27 @@
 import { useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { Activity, AlertCircle, CheckCircle, Clock, TrendingUp, Users, Zap } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Activity, AlertCircle, Building2, CheckCircle, Clock, TrendingUp, Users, Zap } from "lucide-react";
 import { calculateQueue, generateCapacityData, type QueueInput, type QueueResult } from "@/lib/queueCalculations";
+
+const institutionTypes = [
+  { value: "hospital", label: "Hospital", icon: "🏥" },
+  { value: "bank", label: "Bank", icon: "🏦" },
+  { value: "cafeteria", label: "Cafeteria", icon: "🍽️" },
+  { value: "government", label: "Government Office", icon: "🏛️" },
+  { value: "university", label: "University Office", icon: "🎓" },
+  { value: "call_center", label: "Call Center", icon: "📞" },
+  { value: "customer_service", label: "Customer Service", icon: "🤝" },
+];
+
+const institutionLabels: Record<string, { server: string; customer: string }> = {
+  hospital: { server: "doctors", customer: "patients" },
+  bank: { server: "tellers", customer: "customers" },
+  cafeteria: { server: "counters", customer: "customers" },
+  government: { server: "service windows", customer: "citizens" },
+  university: { server: "staff members", customer: "students" },
+  call_center: { server: "agents", customer: "callers" },
+  customer_service: { server: "representatives", customer: "customers" },
+};
 
 const DemoDashboard = () => {
   const [input, setInput] = useState<QueueInput>({
@@ -10,8 +30,11 @@ const DemoDashboard = () => {
     numServers: 3,
     operatingHours: 8,
   });
+  const [institution, setInstitution] = useState("hospital");
   const [result, setResult] = useState<QueueResult | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
+
+  const labels = institutionLabels[institution];
 
   const handleAnalyze = () => {
     const r = calculateQueue(input);
@@ -28,11 +51,34 @@ const DemoDashboard = () => {
           <span className="text-sm font-semibold text-primary uppercase tracking-wider">Interactive Demo</span>
           <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Queue Optimization Dashboard</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Enter your hospital parameters and analyze queue performance using M/M/c queue theory models.
+            Select your institution type, enter parameters, and analyze queue performance using M/M/c queue theory models.
           </p>
         </div>
 
         <div className="max-w-6xl mx-auto">
+          {/* Institution Type Selector */}
+          <div className="bg-card rounded-2xl card-shadow p-6 sm:p-8 mb-4">
+            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Institution Type
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              {institutionTypes.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setInstitution(t.value)}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    institution === t.value
+                      ? "gradient-bg text-primary-foreground shadow-md"
+                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Input Panel */}
           <div className="bg-card rounded-2xl card-shadow p-6 sm:p-8 mb-8">
             <h3 className="font-semibold text-lg mb-6 flex items-center gap-2">
@@ -41,9 +87,9 @@ const DemoDashboard = () => {
             </h3>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: "Patient Arrival Rate", sub: "patients/hour", key: "arrivalRate" as const },
-                { label: "Avg. Service Rate", sub: "patients/hour/doctor", key: "serviceRate" as const },
-                { label: "Number of Doctors", sub: "service counters", key: "numServers" as const },
+                { label: "Arrival Rate", sub: `${labels.customer}/hour`, key: "arrivalRate" as const },
+                { label: "Avg. Service Rate", sub: `${labels.customer}/hour/${labels.server.slice(0, -1)}`, key: "serviceRate" as const },
+                { label: `Number of ${labels.server.charAt(0).toUpperCase() + labels.server.slice(1)}`, sub: "service counters", key: "numServers" as const },
                 { label: "Operating Hours", sub: "hours/day", key: "operatingHours" as const },
               ].map((field) => (
                 <div key={field.key}>
@@ -74,7 +120,7 @@ const DemoDashboard = () => {
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { icon: Clock, label: "Avg. Waiting Time", value: `${formatNum(result.avgWaitingTime)} min`, color: "text-primary" },
-                  { icon: Users, label: "Avg. Queue Length", value: `${formatNum(result.avgQueueLength)} patients`, color: "text-secondary" },
+                  { icon: Users, label: "Avg. Queue Length", value: `${formatNum(result.avgQueueLength)} ${labels.customer}`, color: "text-secondary" },
                   { icon: TrendingUp, label: "System Utilization", value: `${formatNum(result.systemUtilization * 100)}%`, color: result.systemUtilization > 0.85 ? "text-destructive" : "text-primary" },
                   { icon: Activity, label: "Prob. of Waiting", value: `${formatNum(result.probWaiting * 100)}%`, color: "text-secondary" },
                 ].map((kpi) => (
@@ -101,17 +147,17 @@ const DemoDashboard = () => {
                     </thead>
                     <tbody>
                       {[
-                        ["Patient Arrival Rate (λ)", `${input.arrivalRate} patients/hr`],
-                        ["Service Rate per Doctor (μ)", `${input.serviceRate} patients/hr`],
-                        ["Number of Doctors (c)", `${input.numServers}`],
+                        ["Arrival Rate (λ)", `${input.arrivalRate} ${labels.customer}/hr`],
+                        ["Service Rate per Server (μ)", `${input.serviceRate} ${labels.customer}/hr`],
+                        [`Number of ${labels.server} (c)`, `${input.numServers}`],
                         ["Server Utilization (ρ)", `${formatNum(result.utilization * 100)}%`],
                         ["Avg. Waiting Time (Wq)", `${formatNum(result.avgWaitingTime)} minutes`],
                         ["Avg. Time in System (W)", `${formatNum(result.avgSystemTime)} minutes`],
-                        ["Avg. Queue Length (Lq)", `${formatNum(result.avgQueueLength)} patients`],
-                        ["Avg. Patients in System (L)", `${formatNum(result.avgPatientsInSystem)} patients`],
+                        ["Avg. Queue Length (Lq)", `${formatNum(result.avgQueueLength)} ${labels.customer}`],
+                        [`Avg. ${labels.customer} in System (L)`, `${formatNum(result.avgPatientsInSystem)} ${labels.customer}`],
                         ["Probability of Waiting", `${formatNum(result.probWaiting * 100)}%`],
-                        ["Total Patients per Day", `${result.totalPatientsPerDay}`],
-                        ["Recommended Doctors", `${result.recommendedDoctors}`],
+                        [`Total ${labels.customer} per Day`, `${result.totalPatientsPerDay}`],
+                        [`Recommended ${labels.server}`, `${result.recommendedDoctors}`],
                       ].map(([metric, value]) => (
                         <tr key={metric} className="border-b border-border/50 last:border-0">
                           <td className="py-2.5 px-4">{metric}</td>
@@ -125,12 +171,12 @@ const DemoDashboard = () => {
 
               {/* Chart */}
               <div className="bg-card rounded-2xl card-shadow p-6">
-                <h3 className="font-semibold text-lg mb-4">Waiting Time vs. Number of Doctors</h3>
+                <h3 className="font-semibold text-lg mb-4">Waiting Time vs. Number of {labels.server.charAt(0).toUpperCase() + labels.server.slice(1)}</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                      <XAxis dataKey="doctors" label={{ value: "Number of Doctors", position: "insideBottom", offset: -5 }} />
+                      <XAxis dataKey="doctors" label={{ value: `Number of ${labels.server}`, position: "insideBottom", offset: -5 }} />
                       <YAxis label={{ value: "Wait Time (min)", angle: -90, position: "insideLeft" }} />
                       <Tooltip
                         contentStyle={{ borderRadius: "12px", border: "1px solid hsl(214, 20%, 90%)", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}

@@ -3,7 +3,6 @@ import { ArrowRight, Activity, Clock, Users } from "lucide-react";
 const HeroSection = () => {
   return (
     <section className="relative pt-32 pb-20 overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-72 h-72 bg-medical-blue-light rounded-full blur-3xl opacity-60" />
         <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-medical-green-light rounded-full blur-3xl opacity-40" />
@@ -12,21 +11,21 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 text-center">
         <div className="inline-flex items-center gap-2 bg-medical-blue-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
           <Activity className="h-4 w-4" />
-          Queue Theory × Healthcare
+          Queue Theory × Service Optimization
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6">
-          <span className="gradient-text">MediQueue</span>
+          <span className="gradient-text">ServeSmart</span>
         </h1>
 
         <p className="text-xl sm:text-2xl font-semibold text-foreground mb-4">
-          Smarter Patient Flow, Shorter Waiting Times
+          Optimize Service Flow, Reduce Waiting Time
         </p>
 
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-10">
-          An Industrial Engineering decision support system that optimizes hospital queues
-          using queue theory (M/M/c models) and operations research to reduce patient
-          waiting times and improve service efficiency.
+          An Industrial Engineering decision support system that optimizes service queues
+          using queue theory (M/M/c models) and operations research to reduce waiting
+          times and improve efficiency across hospitals, banks, and service centers.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -38,7 +37,6 @@ const HeroSection = () => {
           </a>
         </div>
 
-        {/* Quick stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
           {[
             { icon: Clock, label: "Avg. Wait Reduction", value: "40%" },

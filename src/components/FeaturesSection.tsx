@@ -1,10 +1,10 @@
 import { BarChart3, Brain, Clock, Gauge, LineChart, Settings2, Users } from "lucide-react";
 
 const features = [
-  { icon: LineChart, title: "Patient Flow Analysis", description: "Track and analyze patient arrival patterns using statistical models to identify bottlenecks." },
+  { icon: LineChart, title: "Queue Analysis", description: "Track and analyze customer arrival patterns using statistical models to identify bottlenecks." },
   { icon: Clock, title: "Waiting Time Prediction", description: "Predict expected waiting times using M/M/c queue theory models with high accuracy." },
   { icon: Settings2, title: "Capacity Planning", description: "Determine the optimal number of service counters based on demand patterns and service rates." },
-  { icon: Gauge, title: "Queue Performance Metrics", description: "Monitor key metrics like utilization, queue length, and service levels in real-time." },
+  { icon: Gauge, title: "Resource Utilization Metrics", description: "Monitor key metrics like utilization, queue length, and service levels in real-time." },
   { icon: Users, title: "Service Counter Optimization", description: "Get data-driven recommendations for staffing levels across different time periods." },
   { icon: Brain, title: "Operations Research Models", description: "Leverage proven OR techniques including M/M/1 and M/M/c models for decision support." },
 ];
@@ -17,7 +17,7 @@ const FeaturesSection = () => {
           <span className="text-sm font-semibold text-secondary uppercase tracking-wider">Features</span>
           <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">Powerful Queue Optimization Tools</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            MediQueue combines queue theory with intuitive dashboards to provide actionable insights for hospital operations.
+            ServeSmart combines queue theory with intuitive dashboards to provide actionable insights for service operations.
           </p>
         </div>
 
