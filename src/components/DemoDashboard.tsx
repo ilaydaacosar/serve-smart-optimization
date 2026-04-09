@@ -7,7 +7,16 @@ import {
   Activity, AlertCircle, ArrowDown, ArrowUp, Building2, CheckCircle2,
   Clock, Gauge, Info, LayoutDashboard, Minus, Settings2,
   TrendingUp, Users, Zap, BarChart3, Table2, Lightbulb,
+  ShieldCheck, ToggleLeft, ToggleRight, Crown, Heart, Accessibility,
+  UserCheck, Star, AlertTriangle,
 } from "lucide-react";
+import {
+  DEFAULT_CATEGORIES,
+  analyzePriorityQueue,
+  getCategoryLabels,
+  type PriorityCategory,
+  type PriorityAnalysis,
+} from "@/lib/priorityQueueCalculations";
 
 /* ─── Institution config ────────────────────────────────────── */
 const institutionTypes = [
@@ -30,7 +39,24 @@ const institutionLabels: Record<string, { server: string; customer: string }> = 
   customer_service: { server: "representatives", customer: "customers" },
 };
 
-/* ─── Calculation per user spec ─────────────────────────────── */
+const priorityIcons: Record<string, React.ElementType> = {
+  emergency: AlertTriangle,
+  disabled: Accessibility,
+  pregnant: Heart,
+  elderly: UserCheck,
+  vip: Crown,
+  standard: Users,
+};
+
+const priorityColors: Record<number, { text: string; bg: string; badge: string }> = {
+  5: { text: "text-kpi-red", bg: "bg-kpi-red-bg", badge: "bg-kpi-red/15 text-kpi-red" },
+  4: { text: "text-kpi-amber", bg: "bg-kpi-amber-bg", badge: "bg-kpi-amber/15 text-kpi-amber" },
+  3: { text: "text-kpi-blue", bg: "bg-kpi-blue-bg", badge: "bg-kpi-blue/15 text-kpi-blue" },
+  2: { text: "text-primary", bg: "bg-primary/10", badge: "bg-primary/15 text-primary" },
+  1: { text: "text-muted-foreground", bg: "bg-muted", badge: "bg-muted text-muted-foreground" },
+};
+
+/* ─── Calculation (standard) ────────────────────────────────── */
 interface CalcResult {
   rho: number;
   waitMinutes: number;
@@ -40,21 +66,19 @@ interface CalcResult {
 
 function calcQueue(lambda: number, mu: number, c: number): CalcResult {
   const rho = lambda / (c * mu);
-  if (rho >= 1) {
-    return { rho, waitMinutes: Infinity, Lq: Infinity, pWait: 1 };
-  }
-  const W = rho / (mu * (1 - rho));          // hours
-  const waitMinutes = W * 60;                 // convert to minutes
-  const Lq = lambda * W;                     // avg queue length
-  const pWait = Math.pow(rho, c);            // P(wait) = ρ^c
+  if (rho >= 1) return { rho, waitMinutes: Infinity, Lq: Infinity, pWait: 1 };
+  const W = rho / (mu * (1 - rho));
+  const waitMinutes = W * 60;
+  const Lq = lambda * W;
+  const pWait = Math.pow(rho, c);
   return { rho, waitMinutes: Math.max(0, waitMinutes), Lq: Math.max(0, Lq), pWait: Math.min(1, Math.max(0, pWait)) };
 }
 
-function getRecommendation(rho: number): { text: string; severity: "critical" | "high" | "low" | "optimal" } {
-  if (rho > 0.9) return { text: "Critical overload. Increase servers immediately to prevent service collapse.", severity: "critical" };
-  if (rho >= 0.75) return { text: "High load. Consider increasing capacity to maintain acceptable service levels.", severity: "high" };
-  if (rho < 0.5) return { text: "System is underutilized. Consider reducing servers to optimize resource allocation.", severity: "low" };
-  return { text: "System operating efficiently. Current capacity matches demand well.", severity: "optimal" };
+function getRecommendation(rho: number) {
+  if (rho > 0.9) return { text: "Critical overload. Increase servers immediately to prevent service collapse.", severity: "critical" as const };
+  if (rho >= 0.75) return { text: "High load. Consider increasing capacity to maintain acceptable service levels.", severity: "high" as const };
+  if (rho < 0.5) return { text: "System is underutilized. Consider reducing servers to optimize resource allocation.", severity: "low" as const };
+  return { text: "System operating efficiently. Current capacity matches demand well.", severity: "optimal" as const };
 }
 
 /* ─── Helpers ───────────────────────────────────────────────── */
@@ -96,23 +120,45 @@ const DemoDashboard = () => {
   const [result, setResult] = useState<CalcResult | null>(null);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
+  // Priority state
+  const [priorityEnabled, setPriorityEnabled] = useState(false);
+  const [categories, setCategories] = useState<PriorityCategory[]>(DEFAULT_CATEGORIES);
+  const [priorityAnalysis, setPriorityAnalysis] = useState<PriorityAnalysis | null>(null);
+
   const labels = institutionLabels[institution];
+  const catLabels = getCategoryLabels(institution);
 
   const handleAnalyze = () => {
-    setResult(calcQueue(lambda, mu, c));
+    const r = calcQueue(lambda, mu, c);
+    setResult(r);
+    if (priorityEnabled) {
+      setPriorityAnalysis(analyzePriorityQueue(lambda, mu, c, categories, institution));
+    } else {
+      setPriorityAnalysis(null);
+    }
     setHasAnalyzed(true);
   };
 
-  /* what-if table: c, c+1, c+2 */
+  const toggleCategory = (id: string) => {
+    if (id === "standard") return; // standard always on
+    setCategories((prev) =>
+      prev.map((cat) => cat.id === id ? { ...cat, enabled: !cat.enabled } : cat),
+    );
+  };
+
+  const updateCategoryPct = (id: string, pct: number) => {
+    setCategories((prev) =>
+      prev.map((cat) => cat.id === id ? { ...cat, percentage: Math.max(0, Math.min(100, pct)) } : cat),
+    );
+  };
+
+  /* what-if table */
   const whatIfData = useMemo(() => {
     if (!hasAnalyzed) return [];
-    return [c, c + 1, c + 2].map((servers) => {
-      const r = calcQueue(lambda, mu, servers);
-      return { servers, ...r };
-    });
+    return [c, c + 1, c + 2].map((servers) => ({ servers, ...calcQueue(lambda, mu, servers) }));
   }, [hasAnalyzed, lambda, mu, c]);
 
-  /* chart: waiting time vs number of servers */
+  /* chart data */
   const chartData = useMemo(() => {
     if (!hasAnalyzed) return [];
     const minC = Math.max(1, Math.ceil(lambda / mu));
@@ -120,21 +166,18 @@ const DemoDashboard = () => {
     const data = [];
     for (let s = minC; s <= maxC; s++) {
       const r = calcQueue(lambda, mu, s);
-      data.push({
-        servers: s,
-        waitingTime: r.waitMinutes === Infinity ? null : parseFloat(r.waitMinutes.toFixed(1)),
-      });
+      data.push({ servers: s, waitingTime: r.waitMinutes === Infinity ? null : parseFloat(r.waitMinutes.toFixed(1)) });
     }
     return data;
   }, [hasAnalyzed, lambda, mu, c]);
 
-  /* gauge data */
+  /* gauge */
   const gaugeData = useMemo(() => {
     if (!result) return [];
     return [{ name: "Utilization", value: parseFloat((Math.min(result.rho, 1) * 100).toFixed(1)), fill: "url(#gaugeGrad)" }];
   }, [result]);
 
-  /* pie: waiting vs service time */
+  /* pie */
   const pieData = useMemo(() => {
     if (!result || result.waitMinutes === Infinity) return [];
     const serviceMin = (1 / mu) * 60;
@@ -157,7 +200,7 @@ const DemoDashboard = () => {
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-3">Queue Optimization Dashboard</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Configure your service environment, run the analysis, and explore professional-grade queue metrics.
+            Configure your service environment, run the analysis, and explore professional-grade queue metrics with priority service logic.
           </p>
         </div>
 
@@ -176,13 +219,19 @@ const DemoDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {priorityEnabled && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <ShieldCheck className="h-3 w-3" />
+                  Priority Mode
+                </span>
+              )}
               {hasAnalyzed && result && (
                 <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ring-1 ${getUtilColor(result.rho).bg} ${getUtilColor(result.rho).text} ${getUtilColor(result.rho).ring}`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                   {getUtilColor(result.rho).label}
                 </span>
               )}
-              <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md">v2.1</span>
+              <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md">v3.0</span>
             </div>
           </div>
 
@@ -255,9 +304,96 @@ const DemoDashboard = () => {
                   <Zap className="h-4 w-4" /> Analyze Queue
                 </button>
                 <p className="text-[10px] text-center text-muted-foreground leading-tight">
-                  Calculate ρ, Wq, Lq, P(wait) using queue theory formulas
+                  Calculate ρ, Wq, Lq, P(wait) with {priorityEnabled ? "priority" : "standard"} mode
                 </p>
               </div>
+            </div>
+
+            {/* ─── Priority Queue Settings ─── */}
+            <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden">
+              <div className="px-5 py-4 border-b border-dashboard-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Priority Queue Settings</h4>
+                    <p className="text-xs text-muted-foreground">Configure priority-based service handling</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPriorityEnabled(!priorityEnabled)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                    priorityEnabled
+                      ? "gradient-bg text-primary-foreground border-transparent shadow-sm"
+                      : "bg-dashboard-bg border-dashboard-border text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  {priorityEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                  {priorityEnabled ? "Priority Enabled" : "Normal Queue"}
+                </button>
+              </div>
+
+              {priorityEnabled && (
+                <div className="p-5 space-y-4 animate-fade-in">
+                  <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg px-4 py-2.5 flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 mt-0.5 text-primary flex-shrink-0" />
+                    Priority service logic is used to improve accessibility and urgent care responsiveness while monitoring the impact on total queue performance.
+                  </p>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {categories.map((cat) => {
+                      const Icon = priorityIcons[cat.id] || Users;
+                      const color = priorityColors[cat.priorityLevel] || priorityColors[1];
+                      const catLabel = catLabels[cat.id] || cat.label;
+                      return (
+                        <div
+                          key={cat.id}
+                          className={`rounded-xl border p-4 transition-all ${
+                            cat.enabled
+                              ? "border-primary/20 bg-primary/[0.02] shadow-sm"
+                              : "border-dashboard-border bg-dashboard-bg opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-lg ${color.bg} flex items-center justify-center`}>
+                                <Icon className={`h-3.5 w-3.5 ${color.text}`} />
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-foreground">{catLabel}</p>
+                                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${color.badge}`}>
+                                  Level {cat.priorityLevel}
+                                </span>
+                              </div>
+                            </div>
+                            {cat.id !== "standard" && (
+                              <button
+                                onClick={() => toggleCategory(cat.id)}
+                                className={`w-8 h-5 rounded-full transition-all flex items-center ${
+                                  cat.enabled ? "bg-primary justify-end" : "bg-muted justify-start"
+                                }`}
+                              >
+                                <span className="w-3.5 h-3.5 rounded-full bg-white shadow-sm mx-0.5" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground">% of total arrivals</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={cat.percentage}
+                              onChange={(e) => updateCategoryPct(cat.id, Number(e.target.value))}
+                              disabled={!cat.enabled}
+                              className="w-full rounded-lg border border-dashboard-border bg-dashboard-bg px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-colors disabled:opacity-40"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ─── Results ─── */}
@@ -266,55 +402,238 @@ const DemoDashboard = () => {
 
                 {/* KPI Row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      icon: Gauge, label: "Utilization (ρ)",
-                      value: pct(result.rho), unit: "",
-                      color: getUtilColor(result.rho).text, bg: getUtilColor(result.rho).bg,
-                      trend: result.rho > 0.85 ? "up" as const : result.rho >= 0.6 ? "neutral" as const : "down" as const,
-                    },
-                    {
-                      icon: Clock, label: "Avg. Waiting Time",
-                      value: `${fmt(result.waitMinutes)}`, unit: "min",
-                      color: "text-kpi-blue", bg: "bg-kpi-blue-bg",
-                      trend: result.waitMinutes > 15 ? "up" as const : result.waitMinutes > 5 ? "neutral" as const : "down" as const,
-                    },
-                    {
-                      icon: Users, label: "Queue Length (Lq)",
-                      value: `${fmt(result.Lq, 1)}`, unit: labels.customer,
-                      color: "text-kpi-amber", bg: "bg-kpi-amber-bg",
-                      trend: result.Lq > 5 ? "up" as const : "down" as const,
-                    },
-                    {
-                      icon: Activity, label: "Prob. of Waiting",
-                      value: pct(result.pWait), unit: "",
-                      color: "text-kpi-red", bg: "bg-kpi-red-bg",
-                      trend: result.pWait > 0.5 ? "up" as const : "down" as const,
-                    },
-                  ].map((kpi) => (
-                    <div key={kpi.label} className="bg-dashboard-card rounded-xl border border-dashboard-border p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center`}>
-                          <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+                  {(() => {
+                    const kpis = [
+                      {
+                        icon: Gauge, label: "Utilization (ρ)",
+                        value: pct(result.rho), unit: "",
+                        color: getUtilColor(result.rho).text, bg: getUtilColor(result.rho).bg,
+                        trend: result.rho > 0.85 ? "up" as const : result.rho >= 0.6 ? "neutral" as const : "down" as const,
+                      },
+                      {
+                        icon: Clock, label: priorityEnabled && priorityAnalysis ? "Priority Wait Time" : "Avg. Waiting Time",
+                        value: priorityEnabled && priorityAnalysis
+                          ? `${fmt(priorityAnalysis.priorityAvgWait)}`
+                          : `${fmt(result.waitMinutes)}`,
+                        unit: "min",
+                        color: "text-kpi-blue", bg: "bg-kpi-blue-bg",
+                        trend: (priorityEnabled && priorityAnalysis ? priorityAnalysis.priorityAvgWait : result.waitMinutes) > 15 ? "up" as const : "down" as const,
+                      },
+                      {
+                        icon: Users, label: priorityEnabled && priorityAnalysis ? "Standard Wait Time" : "Queue Length (Lq)",
+                        value: priorityEnabled && priorityAnalysis
+                          ? `${fmt(priorityAnalysis.standardWait)}`
+                          : `${fmt(result.Lq, 1)}`,
+                        unit: priorityEnabled ? "min" : labels.customer,
+                        color: "text-kpi-amber", bg: "bg-kpi-amber-bg",
+                        trend: (priorityEnabled && priorityAnalysis
+                          ? priorityAnalysis.standardWait > result.waitMinutes
+                          : result.Lq > 5) ? "up" as const : "down" as const,
+                      },
+                      {
+                        icon: priorityEnabled ? ShieldCheck : Activity,
+                        label: priorityEnabled && priorityAnalysis ? "Queue Fairness Impact" : "Prob. of Waiting",
+                        value: priorityEnabled && priorityAnalysis
+                          ? `+${priorityAnalysis.fairnessImpact.toFixed(0)}%`
+                          : pct(result.pWait),
+                        unit: priorityEnabled ? "std. wait ↑" : "",
+                        color: priorityEnabled && priorityAnalysis && priorityAnalysis.fairnessImpact > 20
+                          ? "text-kpi-red" : "text-kpi-amber",
+                        bg: priorityEnabled && priorityAnalysis && priorityAnalysis.fairnessImpact > 20
+                          ? "bg-kpi-red-bg" : "bg-kpi-amber-bg",
+                        trend: (priorityEnabled && priorityAnalysis
+                          ? priorityAnalysis.fairnessImpact > 15
+                          : result.pWait > 0.5) ? "up" as const : "down" as const,
+                      },
+                    ];
+                    return kpis.map((kpi) => (
+                      <div key={kpi.label} className="bg-dashboard-card rounded-xl border border-dashboard-border p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                            <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+                          </div>
+                          <div className={`flex items-center gap-0.5 text-xs font-medium ${
+                            kpi.trend === "up" ? "text-kpi-red" : kpi.trend === "down" ? "text-kpi-green" : "text-kpi-amber"
+                          }`}>
+                            {kpi.trend === "up" ? <ArrowUp className="h-3 w-3" /> : kpi.trend === "down" ? <ArrowDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                            {kpi.trend === "up" ? "High" : kpi.trend === "down" ? "Low" : "OK"}
+                          </div>
                         </div>
-                        <div className={`flex items-center gap-0.5 text-xs font-medium ${
-                          kpi.trend === "up" ? "text-kpi-red" : kpi.trend === "down" ? "text-kpi-green" : "text-kpi-amber"
-                        }`}>
-                          {kpi.trend === "up" ? <ArrowUp className="h-3 w-3" /> : kpi.trend === "down" ? <ArrowDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                          {kpi.trend === "up" ? "High" : kpi.trend === "down" ? "Low" : "OK"}
-                        </div>
+                        <p className="text-2xl font-bold text-foreground leading-none">{kpi.value}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {kpi.unit && <span className="font-medium">{kpi.unit} · </span>}{kpi.label}
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-foreground leading-none">{kpi.value}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {kpi.unit && <span className="font-medium">{kpi.unit} · </span>}{kpi.label}
-                      </p>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
+
+                {/* Priority Results Table */}
+                {priorityEnabled && priorityAnalysis && (
+                  <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden animate-fade-in">
+                    <div className="px-5 py-4 border-b border-dashboard-border flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">Priority Queue Breakdown</h4>
+                        <p className="text-xs text-muted-foreground">Estimated wait times by {labels.customer} category</p>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-dashboard-bg">
+                            <th className="text-left py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category</th>
+                            <th className="text-center py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Priority</th>
+                            <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Arrival %</th>
+                            <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wait Time</th>
+                            <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Queue Length</th>
+                            <th className="text-center py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Speed</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-dashboard-border">
+                          {priorityAnalysis.priorityResults.map((pr) => {
+                            const Icon = priorityIcons[pr.categoryId] || Users;
+                            const color = priorityColors[pr.priorityLevel] || priorityColors[1];
+                            return (
+                              <tr key={pr.categoryId} className="hover:bg-dashboard-bg/50 transition-colors">
+                                <td className="py-3 px-5">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-6 h-6 rounded-md ${color.bg} flex items-center justify-center`}>
+                                      <Icon className={`h-3 w-3 ${color.text}`} />
+                                    </div>
+                                    <span className="font-medium text-foreground text-xs">{pr.label}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-5 text-center">
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
+                                    Level {pr.priorityLevel}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-5 text-right font-semibold text-foreground text-xs">{pr.arrivalShare.toFixed(0)}%</td>
+                                <td className="py-3 px-5 text-right font-semibold text-foreground text-xs">{fmt(pr.waitingTime)} min</td>
+                                <td className="py-3 px-5 text-right font-semibold text-foreground text-xs">{fmt(pr.queueLength, 1)}</td>
+                                <td className="py-3 px-5 text-center">
+                                  <span className={`text-[10px] font-medium ${pr.categoryId === "standard" ? "text-muted-foreground" : "text-kpi-green"}`}>
+                                    {pr.speedup}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Comparison Table */}
+                {priorityEnabled && priorityAnalysis && (
+                  <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden animate-fade-in">
+                    <div className="px-5 py-4 border-b border-dashboard-border flex items-center gap-2">
+                      <Table2 className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">Scenario Comparison</h4>
+                        <p className="text-xs text-muted-foreground">Normal queue vs. priority queue enabled</p>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-dashboard-bg">
+                            <th className="text-left py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Metric</th>
+                            <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Without Priority</th>
+                            <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">With Priority</th>
+                            <th className="text-center py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Change</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-dashboard-border">
+                          {[
+                            {
+                              metric: "Avg. Waiting Time",
+                              normal: `${fmt(priorityAnalysis.normalWait)} min`,
+                              priority: `${fmt(priorityAnalysis.overallAvgWait)} min`,
+                              change: priorityAnalysis.normalWait === Infinity ? "—"
+                                : `${((priorityAnalysis.overallAvgWait - priorityAnalysis.normalWait) / priorityAnalysis.normalWait * 100).toFixed(0)}%`,
+                              isWorse: priorityAnalysis.overallAvgWait > priorityAnalysis.normalWait,
+                            },
+                            {
+                              metric: "Queue Length",
+                              normal: `${fmt(priorityAnalysis.normalQueueLength, 1)}`,
+                              priority: `${fmt(result.Lq, 1)}`,
+                              change: "~0%",
+                              isWorse: false,
+                            },
+                            {
+                              metric: "Utilization",
+                              normal: pct(priorityAnalysis.normalUtilization),
+                              priority: pct(priorityAnalysis.priorityUtilization),
+                              change: "No change",
+                              isWorse: false,
+                            },
+                            {
+                              metric: "Recommended Servers",
+                              normal: `${priorityAnalysis.normalRecommendedServers}`,
+                              priority: `${priorityAnalysis.priorityRecommendedServers}`,
+                              change: priorityAnalysis.priorityRecommendedServers > priorityAnalysis.normalRecommendedServers
+                                ? `+${priorityAnalysis.priorityRecommendedServers - priorityAnalysis.normalRecommendedServers}`
+                                : "Same",
+                              isWorse: priorityAnalysis.priorityRecommendedServers > priorityAnalysis.normalRecommendedServers,
+                            },
+                          ].map((row) => (
+                            <tr key={row.metric} className="hover:bg-dashboard-bg/50 transition-colors">
+                              <td className="py-3 px-5 font-medium text-foreground text-xs">{row.metric}</td>
+                              <td className="py-3 px-5 text-right font-semibold text-foreground text-xs">{row.normal}</td>
+                              <td className="py-3 px-5 text-right font-semibold text-foreground text-xs">{row.priority}</td>
+                              <td className="py-3 px-5 text-center">
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                  row.isWorse ? "bg-kpi-red-bg text-kpi-red" : "bg-kpi-green-bg text-kpi-green"
+                                }`}>
+                                  {row.change}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Recommendation */}
+                {priorityEnabled && priorityAnalysis && (
+                  <div className={`rounded-xl border-2 p-5 animate-fade-in ${
+                    priorityAnalysis.fairnessImpact > 25 ? "border-kpi-red/30 bg-kpi-red-bg"
+                      : priorityAnalysis.fairnessImpact > 10 ? "border-kpi-amber/30 bg-kpi-amber-bg"
+                      : "border-kpi-green/30 bg-kpi-green-bg"
+                  }`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        priorityAnalysis.fairnessImpact > 25 ? "bg-kpi-red/10" : priorityAnalysis.fairnessImpact > 10 ? "bg-kpi-amber/10" : "bg-kpi-green/10"
+                      }`}>
+                        <ShieldCheck className={`h-5 w-5 ${
+                          priorityAnalysis.fairnessImpact > 25 ? "text-kpi-red" : priorityAnalysis.fairnessImpact > 10 ? "text-kpi-amber" : "text-kpi-green"
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-sm text-foreground">Priority Service Impact</h4>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            priorityAnalysis.fairnessImpact > 25 ? "bg-kpi-red/20 text-kpi-red"
+                              : priorityAnalysis.fairnessImpact > 10 ? "bg-kpi-amber/20 text-kpi-amber"
+                              : "bg-kpi-green/20 text-kpi-green"
+                          }`}>
+                            {priorityAnalysis.fairnessImpact > 25 ? "High Impact" : priorityAnalysis.fairnessImpact > 10 ? "Moderate" : "Balanced"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{priorityAnalysis.recommendation}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Charts Row */}
                 <div className="grid lg:grid-cols-3 gap-4">
-                  {/* Main Chart - Waiting Time vs Servers */}
+                  {/* Main Chart */}
                   <div className="lg:col-span-2 bg-dashboard-card rounded-xl border border-dashboard-border p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -335,41 +654,25 @@ const DemoDashboard = () => {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 93%)" vertical={false} />
-                          <XAxis
-                            dataKey="servers"
-                            tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }}
-                            tickLine={false}
-                            axisLine={false}
-                            label={{ value: `# of ${labels.server}`, position: "insideBottom", offset: -2, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }}
-                            tickLine={false}
-                            axisLine={false}
-                            label={{ value: "Wait (min)", angle: -90, position: "insideLeft", offset: 15, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }}
-                          />
+                          <XAxis dataKey="servers" tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false}
+                            label={{ value: `# of ${labels.server}`, position: "insideBottom", offset: -2, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
+                          <YAxis tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false}
+                            label={{ value: "Wait (min)", angle: -90, position: "insideLeft", offset: 15, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
                           <Tooltip content={<ChartTooltipCustom />} />
-                          <Area
-                            type="monotone"
-                            dataKey="waitingTime"
-                            name="Wait Time"
-                            stroke="hsl(210 80% 45%)"
-                            strokeWidth={2.5}
-                            fill="url(#waitAreaGrad)"
-                            dot={{ r: 3, fill: "hsl(210 80% 45%)", strokeWidth: 0 }}
-                            activeDot={{ r: 5, stroke: "hsl(210 80% 45%)", strokeWidth: 2, fill: "white" }}
-                          />
+                          <Area type="monotone" dataKey="waitingTime" name="Wait Time" stroke="hsl(210 80% 45%)" strokeWidth={2.5}
+                            fill="url(#waitAreaGrad)" dot={{ r: 3, fill: "hsl(210 80% 45%)", strokeWidth: 0 }}
+                            activeDot={{ r: 5, stroke: "hsl(210 80% 45%)", strokeWidth: 2, fill: "white" }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
 
-                  {/* Right Panel - Gauge + Pie */}
+                  {/* Right Panel */}
                   <div className="space-y-4">
-                    {/* Utilization Gauge */}
+                    {/* Gauge */}
                     <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-5">
                       <h4 className="text-sm font-semibold text-foreground mb-1">System Load</h4>
-                      <p className="text-xs text-muted-foreground mb-3">Utilization ρ = λ / (c × μ)</p>
+                      <p className="text-xs text-muted-foreground mb-3">ρ = λ / (c × μ)</p>
                       <div className="h-32 flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                           <RadialBarChart cx="50%" cy="80%" innerRadius="70%" outerRadius="100%" startAngle={180} endAngle={0} data={gaugeData} barSize={12}>
@@ -390,7 +693,7 @@ const DemoDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Time Distribution */}
+                    {/* Pie */}
                     {pieData.length > 0 && (
                       <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-5">
                         <h4 className="text-sm font-semibold text-foreground mb-1">Time in System</h4>
@@ -399,9 +702,7 @@ const DemoDashboard = () => {
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={48} paddingAngle={4} dataKey="value" strokeWidth={0}>
-                                {pieData.map((entry, i) => (
-                                  <Cell key={i} fill={entry.fill} />
-                                ))}
+                                {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                               </Pie>
                               <Tooltip formatter={(value: any) => `${value} min`} contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid hsl(220 15% 91%)" }} />
                             </PieChart>
@@ -416,7 +717,7 @@ const DemoDashboard = () => {
                   </div>
                 </div>
 
-                {/* What-If Comparison Table */}
+                {/* What-If Table */}
                 <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden">
                   <div className="px-5 py-4 border-b border-dashboard-border flex items-center gap-2">
                     <Table2 className="h-4 w-4 text-muted-foreground" />
@@ -447,16 +748,13 @@ const DemoDashboard = () => {
                                 {i === 0 && <span className="ml-2 text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">Current</span>}
                                 {i > 0 && <span className="ml-2 text-[10px] font-medium text-muted-foreground">+{i}</span>}
                               </td>
-                              <td className="py-3 px-5 text-right">
-                                <span className={`font-semibold ${uc.text}`}>{pct(row.rho)}</span>
-                              </td>
+                              <td className="py-3 px-5 text-right"><span className={`font-semibold ${uc.text}`}>{pct(row.rho)}</span></td>
                               <td className="py-3 px-5 text-right font-semibold text-foreground">{fmt(row.waitMinutes)} min</td>
                               <td className="py-3 px-5 text-right font-semibold text-foreground">{fmt(row.Lq, 1)}</td>
                               <td className="py-3 px-5 text-right font-semibold text-foreground">{pct(row.pWait)}</td>
                               <td className="py-3 px-5 text-center">
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${uc.bg} ${uc.text}`}>
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                  {uc.label}
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />{uc.label}
                                 </span>
                               </td>
                             </tr>
@@ -467,15 +765,13 @@ const DemoDashboard = () => {
                   </div>
                 </div>
 
-                {/* Detailed Metrics Table */}
+                {/* Detailed Metrics */}
                 <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden">
-                  <div className="px-5 py-4 border-b border-dashboard-border flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <h4 className="text-sm font-semibold text-foreground">Detailed Metrics</h4>
-                        <p className="text-xs text-muted-foreground">Complete calculation output</p>
-                      </div>
+                  <div className="px-5 py-4 border-b border-dashboard-border flex items-center gap-2">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">Detailed Metrics</h4>
+                      <p className="text-xs text-muted-foreground">Complete calculation output</p>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
@@ -500,9 +796,7 @@ const DemoDashboard = () => {
                         ].map((row) => (
                           <tr key={row.metric} className="hover:bg-dashboard-bg/50 transition-colors">
                             <td className="py-2.5 px-5 text-foreground">{row.metric}</td>
-                            <td className="py-2.5 px-5">
-                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">{row.formula}</code>
-                            </td>
+                            <td className="py-2.5 px-5"><code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-muted-foreground">{row.formula}</code></td>
                             <td className="py-2.5 px-5 text-right font-semibold text-foreground">{row.value}</td>
                           </tr>
                         ))}
@@ -511,7 +805,7 @@ const DemoDashboard = () => {
                   </div>
                 </div>
 
-                {/* Recommendation Card */}
+                {/* Standard Recommendation */}
                 <div className={`rounded-xl border-2 p-5 ${
                   rec.severity === "critical" ? "border-kpi-red/30 bg-kpi-red-bg"
                     : rec.severity === "high" ? "border-kpi-amber/30 bg-kpi-amber-bg"
@@ -558,7 +852,7 @@ const DemoDashboard = () => {
                 </div>
                 <h4 className="font-semibold text-foreground mb-1">Ready to Analyze</h4>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Configure your service parameters above and click <strong>Analyze Queue</strong> to generate metrics, charts, and recommendations.
+                  Configure parameters above{priorityEnabled ? " with priority queue settings" : ""} and click <strong>Analyze Queue</strong> to generate metrics, charts, and recommendations.
                 </p>
               </div>
             )}
