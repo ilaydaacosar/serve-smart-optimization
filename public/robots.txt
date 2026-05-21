@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://serve-smart-optimization.lovable.app/sitemap.xml

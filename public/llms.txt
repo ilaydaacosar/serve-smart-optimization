@@ -1,0 +1,14 @@
+# ServeSmart
+
+> Queue Optimization and Capacity Planning System that uses M/M/c queue theory and operations research to reduce waiting times across hospitals, banks, and service centers.
+
+ServeSmart is an Industrial Engineering decision support system. Users input arrival rate (λ), service rate (μ), number of servers (c), and operating hours to get utilization, expected waiting time, queue length, and recommendations. A Priority Queue module supports pregnant, disabled, elderly, emergency, and VIP groups.
+
+## Pages
+
+- [Home](/): Product overview, problem, features, how it works, interactive demo dashboard, and team.
+
+## Optional
+
+- [Demo Dashboard](/#demo): Try the M/M/c calculator and priority queue simulator.
+- [How It Works](/#how-it-works): Methodology behind the queue model.
