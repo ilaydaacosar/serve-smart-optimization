@@ -2,9 +2,9 @@ import { GraduationCap } from "lucide-react";
 
 const team = [
   { name: "İlayda Coşar", role: "Computer Engineering Student", initials: "BK" },
-  { name: "Siti Nurhaliza", role: "UI/UX Designer", initials: "SN" },
+  { name: "Elvin Çalıklı", role: "UI/UX Designer", initials: "SN" },
   { name: "Budi Santoso", role: "Operations Research Engineer", initials: "BS" },
-  { name: "Dewi Lestari", role: "Data Analyst & QA", initials: "DL" },
+  { name: "Dewi Lestari", role: "Industrial Engineering Student\n", initials: "DL" },
 ];
 
 const TeamSection = () => {
