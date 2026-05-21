@@ -28,7 +28,7 @@ const Navbar = () => {
             </a>
           ))}
           <a href="#demo" className="gradient-bg text-primary-foreground px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
-            Try Demo
+            Launch Console
           </a>
         </div>
 
