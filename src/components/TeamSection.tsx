@@ -1,10 +1,30 @@
-import { Users } from "lucide-react";
+import { Users, Linkedin, Mail } from "lucide-react";
 
 const team = [
-  { name: "İlayda Coşar", role: "Computer Engineering Student", initials: "IC" },
-  { name: "Elvin Çalıklı", role: "Computer Engineering Student", initials: "EC" },
-  { name: "Ece Sude Gül", role: "Computer Engineering Student", initials: "ESG" },
-  { name: "Berk Kazankıran", role: "Computer Engineering Student", initials: "BK" },
+  {
+    name: "İlayda Coşar",
+    role: "Industrial Engineering Student",
+    initials: "İC",
+    department: "Operations & Process",
+  },
+  {
+    name: "Elvin Çalıklı",
+    role: "Industrial Engineering Student",
+    initials: "EÇ",
+    department: "Operations & Process",
+  },
+  {
+    name: "Ece Sude Gül",
+    role: "Industrial Engineering Student",
+    initials: "ESG",
+    department: "Operations & Process",
+  },
+  {
+    name: "Berk Kazankıran",
+    role: "Computer Engineering Student",
+    initials: "BK",
+    department: "Product & Engineering",
+  },
 ];
 
 const TeamSection = () => {
