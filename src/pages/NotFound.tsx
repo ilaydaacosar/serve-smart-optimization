@@ -6,6 +6,18 @@ const NotFound = () => {
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    const prevTitle = document.title;
+    const descEl = document.querySelector('meta[name="description"]');
+    const prevDesc = descEl?.getAttribute("content") ?? "";
+    document.title = "Page not found – ServeSmart";
+    descEl?.setAttribute(
+      "content",
+      "The page you were looking for doesn't exist. Return to ServeSmart to explore queue optimization tools."
+    );
+    return () => {
+      document.title = prevTitle;
+      if (descEl) descEl.setAttribute("content", prevDesc);
+    };
   }, [location.pathname]);
 
   return (
