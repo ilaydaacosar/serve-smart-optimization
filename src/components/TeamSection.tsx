@@ -1,9 +1,9 @@
 import { Users } from "lucide-react";
 
 const team = [
-  { name: "İlayda Coşar", role: "Computer Engineering Student", initials: "IC" },
-  { name: "Elvin Çalıklı", role: "Computer Engineering Student", initials: "EC" },
-  { name: "Ece Sude Gül", role: "Computer Engineering Student", initials: "ESG" },
+  { name: "İlayda Coşar", role: "Industrial Engineering Student", initials: "IC" },
+  { name: "Elvin Çalıklı", role: "Industrial Engineering Student", initials: "EC" },
+  { name: "Ece Sude Gül", role: "Industrial Engineering Student", initials: "ESG" },
   { name: "Berk Kazankıran", role: "Computer Engineering Student", initials: "BK" },
 ];
 
