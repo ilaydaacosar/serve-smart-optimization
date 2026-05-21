@@ -1,10 +1,10 @@
-import { GraduationCap } from "lucide-react";
+import { Users } from "lucide-react";
 
 const team = [
-  { name: "İlayda Coşar", role: "Industrial Engineering Student", initials: "IC" },
-  { name: "Elvin Çalıklı", role: "Industrial Engineering Student", initials: "EC" },
-  { name: "Ece Sude Gül", role: "Industrial Engineering Student", initials: "ESG" },
-  { name: "Berk Kazankıran", role: "Computer Engineering Student", initials: "BK" },
+  { name: "İlayda Coşar", role: "Operations Research Lead", initials: "IC" },
+  { name: "Elvin Çalıklı", role: "Capacity Planning Analyst", initials: "EC" },
+  { name: "Ece Sude Gül", role: "Product Manager", initials: "ESG" },
+  { name: "Berk Kazankıran", role: "Platform Engineer", initials: "BK" },
 ];
 
 const TeamSection = () => {
@@ -13,12 +13,12 @@ const TeamSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 text-primary mb-3">
-            <GraduationCap className="h-5 w-5" />
-            <span className="text-sm font-semibold uppercase tracking-wider">University Project</span>
+            <Users className="h-5 w-5" />
+            <span className="text-sm font-semibold uppercase tracking-wider">Leadership</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Meet the Team</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Product Development and Management course project by Engineering students.
+            A multidisciplinary team of operations researchers, product leaders, and engineers building the next generation of capacity intelligence.
           </p>
         </div>
 
