@@ -30,7 +30,7 @@ const HeroSection = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <a href="#demo" className="gradient-bg text-primary-foreground px-8 py-3.5 rounded-xl text-base font-semibold inline-flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg">
-            Try Demo <ArrowRight className="h-5 w-5" />
+            Launch Console <ArrowRight className="h-5 w-5" />
           </a>
           <a href="#features" className="border border-border bg-card text-foreground px-8 py-3.5 rounded-xl text-base font-semibold inline-flex items-center justify-center hover:bg-muted transition-colors">
             Learn More
