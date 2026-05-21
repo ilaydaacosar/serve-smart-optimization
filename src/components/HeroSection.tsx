@@ -19,13 +19,13 @@ const HeroSection = () => {
         </h1>
 
         <p className="text-xl sm:text-2xl font-semibold text-foreground mb-4">
-          Optimize Service Flow, Reduce Waiting Time
+          Intelligent Queue Optimization & Capacity Planning
         </p>
 
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-10">
-          An Industrial Engineering decision support system that optimizes service queues
-          using queue theory (M/M/c models) and operations research to reduce waiting
-          times and improve efficiency across hospitals, banks, and service centers.
+          The enterprise decision support platform that helps hospitals, clinics, and
+          service organizations cut waiting times, right-size staffing, and unlock
+          measurable operational gains using advanced queueing science.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
