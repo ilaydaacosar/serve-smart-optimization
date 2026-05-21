@@ -8,7 +8,7 @@ const Navbar = () => {
     { label: "Problem", href: "#problem" },
     { label: "Features", href: "#features" },
     { label: "How It Works", href: "#how-it-works" },
-    { label: "Demo", href: "#demo" },
+    { label: "Console", href: "#demo" },
     { label: "Advanced", href: "#advanced" },
     { label: "Team", href: "#team" },
   ];
@@ -28,7 +28,7 @@ const Navbar = () => {
             </a>
           ))}
           <a href="#demo" className="gradient-bg text-primary-foreground px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity">
-            Try Demo
+            Launch Console
           </a>
         </div>
 
@@ -45,7 +45,7 @@ const Navbar = () => {
             </a>
           ))}
           <a href="#demo" onClick={() => setMobileOpen(false)} className="block mt-2 gradient-bg text-primary-foreground px-5 py-2 rounded-lg text-sm font-semibold text-center">
-            Try Demo
+            Launch Console
           </a>
         </div>
       )}

@@ -196,11 +196,11 @@ const DemoDashboard = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-medical-blue-light text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-4">
             <LayoutDashboard className="h-4 w-4" />
-            Interactive Demo
+            Live Operations Console
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-3">Queue Optimization Dashboard</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Configure your service environment, run the analysis, and explore professional-grade queue metrics with priority service logic.
+            Real-time capacity intelligence for healthcare and service operations. Configure service parameters, run M/M/c analysis, and surface staffing decisions trusted by operations teams.
           </p>
         </div>
 
