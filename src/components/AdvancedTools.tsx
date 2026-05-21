@@ -366,11 +366,26 @@ function HourlySchedule() {
 /* ═══════════════════════════════════════════════════════════════
    3) COST OPTIMIZATION
    ═══════════════════════════════════════════════════════════════ */
+const CURRENCIES = {
+  TRY: { symbol: "₺", code: "TRY", label: "Turkish Lira (₺)", rate: 1 },
+  USD: { symbol: "$", code: "USD", label: "US Dollar ($)", rate: 1 / 34 },
+  EUR: { symbol: "€", code: "EUR", label: "Euro (€)", rate: 1 / 37 },
+} as const;
+type CurrencyCode = keyof typeof CURRENCIES;
+
 function CostOptimization() {
+  // Defaults reflect Turkish healthcare market hourly rates (₺/hr)
+  const [currency, setCurrency] = useState<CurrencyCode>("TRY");
   const [lambda, setLambda] = useState(20);
   const [mu, setMu] = useState(8);
-  const [serverCost, setServerCost] = useState(40);
-  const [waitCost, setWaitCost] = useState(25);
+  const [serverCost, setServerCost] = useState(450); // ₺/hr loaded staffing cost per counter
+  const [waitCost, setWaitCost] = useState(180);     // ₺/hr opportunity cost per waiting patient
+
+  const cur = CURRENCIES[currency];
+  const fmtMoney = (n: number) => {
+    const v = n * cur.rate;
+    return `${cur.symbol}${v.toLocaleString("tr-TR", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+  };
 
   const result = useMemo(
     () =>
@@ -385,18 +400,38 @@ function CostOptimization() {
 
   const chartData = result.points.filter((p) => p.feasible).map((p) => ({
     servers: p.servers,
-    "Server cost": p.serverCost,
-    "Waiting cost": p.waitingCost,
-    "Total cost": p.totalCost,
-    optimal: p.servers === result.optimalServers ? p.totalCost : null,
+    "Server cost": parseFloat((p.serverCost * cur.rate).toFixed(2)),
+    "Waiting cost": parseFloat((p.waitingCost * cur.rate).toFixed(2)),
+    "Total cost": parseFloat((p.totalCost * cur.rate).toFixed(2)),
+    optimal: p.servers === result.optimalServers ? parseFloat((p.totalCost * cur.rate).toFixed(2)) : null,
   }));
 
   return (
     <div className="space-y-6">
       <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <DollarSign className="h-4 w-4 text-primary" />
-          <h4 className="text-sm font-semibold">Cost Parameters</h4>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-primary" />
+            <h4 className="text-sm font-semibold">Cost Parameters</h4>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Display currency</Label>
+            <div className="flex rounded-lg border border-dashboard-border overflow-hidden">
+              {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => setCurrency(code)}
+                  className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                    currency === code
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-dashboard-card text-muted-foreground hover:bg-dashboard-bg"
+                  }`}
+                >
+                  {CURRENCIES[code].symbol} {code}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -408,11 +443,12 @@ function CostOptimization() {
             <Input type="number" min={1} value={mu} onChange={(e) => setMu(Number(e.target.value) || 1)} className="h-9 text-sm" />
           </div>
           <div>
-            <Label className="text-[10px] text-muted-foreground">Server cost ($/hr)</Label>
+            <Label className="text-[10px] text-muted-foreground">Staffing cost (₺/hr per counter)</Label>
             <Input type="number" min={0} value={serverCost} onChange={(e) => setServerCost(Number(e.target.value) || 0)} className="h-9 text-sm" />
+            <p className="text-[9px] text-muted-foreground mt-1">Stored in ₺ — display converts.</p>
           </div>
           <div>
-            <Label className="text-[10px] text-muted-foreground">Waiting cost ($/cust/hr)</Label>
+            <Label className="text-[10px] text-muted-foreground">Waiting cost (₺/patient/hr)</Label>
             <Input type="number" min={0} value={waitCost} onChange={(e) => setWaitCost(Number(e.target.value) || 0)} className="h-9 text-sm" />
           </div>
         </div>
@@ -425,35 +461,35 @@ function CostOptimization() {
             <PiggyBank className="h-4 w-4 text-kpi-green" />
           </div>
           <p className="text-xl font-bold">{result.optimalServers}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Economic optimum (servers)</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Economic optimum (counters)</p>
         </div>
         <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-4">
           <div className="w-8 h-8 rounded-lg bg-kpi-blue-bg flex items-center justify-center mb-2">
             <DollarSign className="h-4 w-4 text-kpi-blue" />
           </div>
-          <p className="text-xl font-bold">${result.optimalTotalCost.toFixed(2)}/hr</p>
+          <p className="text-xl font-bold">{fmtMoney(result.optimalTotalCost)}/hr</p>
           <p className="text-[10px] text-muted-foreground mt-1">Total cost at optimum</p>
         </div>
         <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-4">
           <div className="w-8 h-8 rounded-lg bg-kpi-amber-bg flex items-center justify-center mb-2">
             <TrendingUp className="h-4 w-4 text-kpi-amber" />
           </div>
-          <p className="text-xl font-bold">${result.savingsVsMin.toFixed(2)}/hr</p>
+          <p className="text-xl font-bold">{fmtMoney(result.savingsVsMin)}/hr</p>
           <p className="text-[10px] text-muted-foreground mt-1">Savings vs. minimum staffing</p>
         </div>
       </div>
 
       {/* Cost curves */}
       <div className="bg-dashboard-card rounded-xl border border-dashboard-border p-5">
-        <h4 className="text-sm font-semibold mb-1">Cost vs. Number of Servers</h4>
-        <p className="text-xs text-muted-foreground mb-3">Find the point where server cost and waiting cost balance.</p>
+        <h4 className="text-sm font-semibold mb-1">Cost vs. Number of Counters</h4>
+        <p className="text-xs text-muted-foreground mb-3">Find the point where staffing cost and waiting cost balance.</p>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 93%)" vertical={false} />
-              <XAxis dataKey="servers" tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false} label={{ value: "Servers", position: "insideBottom", offset: -2, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
-              <YAxis tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false} label={{ value: "$/hr", angle: -90, position: "insideLeft", offset: 15, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
-              <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(220 15% 91%)" }} />
+              <XAxis dataKey="servers" tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false} label={{ value: "Counters", position: "insideBottom", offset: -2, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
+              <YAxis tick={{ fontSize: 11, fill: "hsl(215 15% 50%)" }} tickLine={false} axisLine={false} label={{ value: `${cur.symbol}/hr`, angle: -90, position: "insideLeft", offset: 15, style: { fontSize: 10, fill: "hsl(215 15% 50%)" } }} />
+              <Tooltip formatter={(v: any) => `${cur.symbol}${Number(v).toLocaleString("tr-TR", { maximumFractionDigits: 2 })}`} contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(220 15% 91%)" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="Server cost" stroke="hsl(160 50% 42%)" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="Waiting cost" stroke="hsl(38 92% 50%)" strokeWidth={2} dot={{ r: 3 }} />
@@ -468,18 +504,18 @@ function CostOptimization() {
       <div className="bg-dashboard-card rounded-xl border border-dashboard-border overflow-hidden">
         <div className="px-5 py-4 border-b border-dashboard-border flex items-center gap-2">
           <Calculator className="h-4 w-4 text-muted-foreground" />
-          <h4 className="text-sm font-semibold">Cost Breakdown</h4>
+          <h4 className="text-sm font-semibold">Cost Breakdown ({cur.code})</h4>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-dashboard-bg">
-                <th className="text-left py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servers</th>
+                <th className="text-left py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Counters</th>
                 <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Utilization</th>
                 <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wait (min)</th>
-                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Server $</th>
-                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Waiting $</th>
-                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total $</th>
+                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Staffing {cur.symbol}</th>
+                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Waiting {cur.symbol}</th>
+                <th className="text-right py-2.5 px-5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total {cur.symbol}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dashboard-border">
@@ -493,9 +529,9 @@ function CostOptimization() {
                     </td>
                     <td className="py-3 px-5 text-right">{p.feasible ? `${p.utilization}%` : "∞"}</td>
                     <td className="py-3 px-5 text-right">{p.feasible ? p.waitMinutes : "∞"}</td>
-                    <td className="py-3 px-5 text-right">${p.serverCost.toFixed(2)}</td>
-                    <td className="py-3 px-5 text-right">{p.feasible ? `$${p.waitingCost.toFixed(2)}` : "∞"}</td>
-                    <td className="py-3 px-5 text-right font-semibold">{p.feasible ? `$${p.totalCost.toFixed(2)}` : "∞"}</td>
+                    <td className="py-3 px-5 text-right">{fmtMoney(p.serverCost)}</td>
+                    <td className="py-3 px-5 text-right">{p.feasible ? fmtMoney(p.waitingCost) : "∞"}</td>
+                    <td className="py-3 px-5 text-right font-semibold">{p.feasible ? fmtMoney(p.totalCost) : "∞"}</td>
                   </tr>
                 );
               })}
