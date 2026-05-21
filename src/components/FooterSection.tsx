@@ -10,10 +10,9 @@ const FooterSection = () => {
             <span className="font-bold gradient-text">ServeSmart</span>
           </div>
           <p className="text-sm text-muted-foreground text-center max-w-md">
-            Queue Optimization and Capacity Planning System — A Product Development and Management course project
-            using queue theory and operations research.
+            Intelligent Queue Optimization & Capacity Planning Platform — powered by operations research and real-time service analytics.
           </p>
-          <p className="text-xs text-muted-foreground">© 2026 ServeSmart. University Project.</p>
+          <p className="text-xs text-muted-foreground">© 2026 ServeSmart, Inc. All rights reserved.</p>
         </div>
       </div>
     </footer>
