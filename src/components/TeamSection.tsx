@@ -1,7 +1,7 @@
 import { GraduationCap } from "lucide-react";
 
 const team = [
-  { name: "Ahmad Rizky", role: "Project Lead & System Analyst", initials: "AR" },
+  { name: "İlayda Coşar", role: "Computer Engineering Student", initials: "BK" },
   { name: "Siti Nurhaliza", role: "UI/UX Designer", initials: "SN" },
   { name: "Budi Santoso", role: "Operations Research Engineer", initials: "BS" },
   { name: "Dewi Lestari", role: "Data Analyst & QA", initials: "DL" },
@@ -18,7 +18,7 @@ const TeamSection = () => {
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Meet the Team</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Product Development and Management course project by Industrial Engineering students.
+            Product Development and Management course project by Engineering students.
           </p>
         </div>
 
