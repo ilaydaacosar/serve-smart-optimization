@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import {
-  AreaChart, Area, BarChart, Bar, Line, LineChart, ComposedChart,
-  CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceDot,
+  Bar, Line, ComposedChart,
+  CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import {
   BookOpen, Calculator, Clock, DollarSign, GitCompare, LayoutGrid,
-  Layers, LineChart as LineChartIcon, PiggyBank, Plus, Trash2,
+  Layers, LineChart as LineChartIcon, PiggyBank, Plus,
   TrendingUp, Users, X, Calendar, Sparkles,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
