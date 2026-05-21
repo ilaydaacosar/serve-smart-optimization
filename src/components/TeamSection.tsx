@@ -1,7 +1,7 @@
 import { GraduationCap } from "lucide-react";
 
 const team = [
-  { name: "İlayda Coşar", role: "Computer Engineering Student", initials: "BK" },
+  { name: "İlayda Coşar", role: "Industrial Engineering Student", initials: "IC" },
   { name: "Elvin Çalıklı", role: "UI/UX Designer", initials: "SN" },
   { name: "Budi Santoso", role: "Operations Research Engineer", initials: "BS" },
   { name: "Dewi Lestari", role: "Industrial Engineering Student\n", initials: "DL" },
